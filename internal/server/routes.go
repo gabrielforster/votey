@@ -15,6 +15,10 @@ func (s *Server) RegisterRoutes() http.Handler {
 	e.GET("/", s.HelloWorldHandler)
 	e.GET("/health", s.healthHandler)
 
+  pollRouter := e.Group("/poll")
+  pollRouter.GET("/:poll", s.pollHandler)
+  pollRouter.POST("/create-poll", s.createPollHandler)
+
 	return e
 }
 
@@ -28,4 +32,13 @@ func (s *Server) HelloWorldHandler(c echo.Context) error {
 
 func (s *Server) healthHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, s.db.Health())
+}
+
+func (s *Server) pollHandler(c echo.Context) error {
+  poll := c.Param("poll")
+  return c.JSON(http.StatusOK, poll)
+}
+
+func (s *Server) createPollHandler(c echo.Context) error {
+  return c.JSON(http.StatusOK, "create poll")
 }
