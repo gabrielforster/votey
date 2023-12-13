@@ -1,6 +1,6 @@
 # Project votey
 
-One Paragraph of project description goes here
+Web app that users can vote on existing polls or create their own poll.
 
 ## Getting Started
 
