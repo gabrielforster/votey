@@ -1,0 +1,71 @@
+CREATE EXTENSION pg_trgm;
+
+CREATE OR REPLACE FUNCTION ARRAY_TO_STRING_IMMUTABLE (
+  arr TEXT[],
+  sep TEXT
+) RETURNS TEXT IMMUTABLE PARALLEL SAFE LANGUAGE SQL AS $$
+SELECT ARRAY_TO_STRING(arr, sep) $$;
+
+CREATE TABLE IF NOT EXISTS Users (
+  id UUID NOT NULL,
+  username VARCHAR(25),
+  password_hash VARCHAR(100),
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY(id)
+);
+
+CREATE TABLE IF NOT EXISTS Sessions (
+  id UUID NOT NULL,
+  user_id UUID NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP + INTERVAL '10 minutes',
+
+  PRIMARY KEY(id),
+  FOREIGN KEY(user_id) REFERENCES Users(id)
+);
+
+CREATE TABLE IF NOT EXISTS Polls (
+  id UUID NOT NULL,
+  title VARCHAR(100),
+  description VARCHAR(500),
+  tags VARCHAR(50)[],
+  need_login BOOLEAN,
+  accept_multiple_vote BOOLEAN,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  author_id UUID NOT NULL,
+
+  search TEXT GENERATED ALWAYS AS (
+    title || ' ' || 
+    COALESCE(ARRAY_TO_STRING_IMMUTABLE(tags, ' '), '')
+  ) STORED,
+
+  PRIMARY KEY(id),
+  FOREIGN KEY(author_id) REFERENCES Users(id)
+);
+
+CREATE INDEX polls_search_index ON Polls USING GIST (search gist_trgm_ops);
+
+CREATE TABLE IF NOT EXISTS Options (
+  id UUID NOT NULL,
+  label VARCHAR(100),
+  poll_id UUID NOT NULL,
+
+  PRIMARY KEY(id),
+  FOREIGN KEY(poll_id) REFERENCES Polls(id)
+
+  ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Votes (
+  id UUID NOT NULL,
+  option_id UUID NOT NULL,
+  user_id UUID NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY(id),
+  FOREIGN KEY(option_id) REFERENCES Options(id),
+  FOREIGN KEY(user_id) REFERENCES Users(id)
+);

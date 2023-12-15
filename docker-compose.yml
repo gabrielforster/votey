@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   psql:
+    container_name: votey_database
     image: postgres:latest
     environment:
       POSTGRES_DB: ${DB_DATABASE}
@@ -10,6 +11,7 @@ services:
     ports:
       - "${DB_PORT}:5432"
     volumes:
+      - ./initdb:/docker-entrypoint-initdb.d
       - psql_volume:/var/lib/postgresql/data
 
 volumes:
